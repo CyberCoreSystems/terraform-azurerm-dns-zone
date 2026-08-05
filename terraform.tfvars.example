@@ -1,0 +1,149 @@
+# ==============================================================================
+#  azure-dns-zone — terraform.tfvars
+# ==============================================================================
+#  Copy this file to `terraform.tfvars`, set the values, then run:
+#      tofu init && tofu apply        (or:  terraform init && terraform apply)
+#
+# AUTHENTICATION — Azure:
+#   The azurerm provider authenticates to Microsoft Entra ID (Azure AD) and
+#   resolves credentials in this order: explicit OIDC, then client certificate,
+#   then client secret, then Managed Identity, then Azure CLI.
+#   Quick start: az login (then `az account set --subscription <id>`; `az
+#   login --use-device-code` for headless, `az login --service-principal -u
+#   <appId> -p <secret> --tenant <tenant>` for SP).
+#   Environment variables Terraform reads:
+#     ARM_SUBSCRIPTION_ID — Target subscription GUID; required for plan/apply in provider v4.x.
+#     ARM_TENANT_ID — Entra ID (Azure AD) tenant GUID.
+#     ARM_CLIENT_ID — App registration / service principal (or user-assigned MSI) client id.
+#     ARM_CLIENT_SECRET  (secret) — Service principal client secret (secret-based auth).
+#     ARM_CLIENT_CERTIFICATE_PATH — Path to the PKCS#12 (.pfx) client certificate.
+#   Full guide (auth + remote state):  docs/CONNECTING-PROVIDERS.md#azure
+#
+#  Secrets below read "REPLACE_ME" — never commit real secrets. Prefer
+#  TF_VAR_<name> environment variables or a secrets manager.
+#  Status: static-validated, live-test pending (see README.md).
+# ==============================================================================
+
+
+# ------------------------------------------------------------------------------
+#  REQUIRED — you must set these
+# ------------------------------------------------------------------------------
+
+# zone_name  —  string  (REQUIRED)
+#   Public DNS zone name (the domain you delegate to Azure), e.g. "example.com".
+#   A trailing dot is optional. azurerm_dns_zone is a PUBLIC zone — for
+#   split-horizon/internal names use a private DNS zone instead.
+#   Constraint: must be a valid DNS name with at least two labels (e.g.
+#   example.com); a single trailing dot is allowed.
+zone_name           = "example.com"
+
+# resource_group_name  —  string  (REQUIRED)
+#   Name of an EXISTING resource group that will hold the zone and its record
+#   sets (this module does not create the resource group). DNS zones are global,
+#   so no location is required.
+resource_group_name = "rg-dns-prod"
+
+# ------------------------------------------------------------------------------
+#  OPTIONAL — defaults shown; uncomment a line to override
+# ------------------------------------------------------------------------------
+
+# soa_record  —  object  (optional, default: null)
+#   Override the zone's auto-created SOA. email uses dot notation, not "@".
+# soa_record = {
+#   email       = "hostmaster.example.com"
+#   minimum_ttl = 300
+#   ttl         = 3600
+# }
+
+# a_records  —  map(object)  (optional, default: {})
+#   A (IPv4) records. name = "@" for the apex (default), or a relative label.
+a_records = {
+  www = {
+    name    = "www"
+    ttl     = 300
+    records = ["203.0.113.10"]
+  }
+}
+
+# aaaa_records  —  map(object)  (optional, default: {})
+#   AAAA (IPv6) records.
+# aaaa_records = {
+#   www = {
+#     name    = "www"
+#     ttl     = 300
+#     records = ["2001:db8::1"]
+#   }
+# }
+
+# cname_records  —  map(object)  (optional, default: {})
+#   CNAME records. Cannot live at the apex.
+# cname_records = {
+#   docs = {
+#     name   = "docs"
+#     ttl    = 300
+#     record = "myorg.github.io"
+#   }
+# }
+
+# txt_records  —  map(object)  (optional, default: {})
+#   TXT records. Pass values verbatim (NO escaped quotes) — Azure segments them.
+txt_records = {
+  spf = {
+    name    = "@"
+    ttl     = 300
+    records = ["v=spf1 -all"]
+  }
+}
+
+# mx_records  —  map(object)  (optional, default: {})
+#   MX records.
+# mx_records = {
+#   mail = {
+#     name = "@"
+#     ttl  = 3600
+#     records = [
+#       { preference = 10, exchange = "mail.example.com" },
+#     ]
+#   }
+# }
+
+# ns_records  —  map(object)  (optional, default: {})
+#   NS records to delegate a SUBDOMAIN (the apex NS set is managed by Azure).
+# ns_records = {
+#   sub = {
+#     name    = "sub"
+#     ttl     = 3600
+#     records = ["ns1.delegate.net", "ns2.delegate.net"]
+#   }
+# }
+
+# caa_records  —  map(object)  (optional, default: {})
+#   CAA records (tag must be issue, issuewild or iodef).
+# caa_records = {
+#   issue = {
+#     name = "@"
+#     ttl  = 3600
+#     records = [
+#       { flags = 0, tag = "issue", value = "letsencrypt.org" },
+#     ]
+#   }
+# }
+
+# srv_records  —  map(object)  (optional, default: {})
+#   SRV records; name is typically "_service._proto".
+# srv_records = {
+#   sip = {
+#     name = "_sip._tls"
+#     ttl  = 3600
+#     records = [
+#       { priority = 100, weight = 1, port = 443, target = "sip.example.com" },
+#     ]
+#   }
+# }
+
+# tags  —  map(string)  (optional, default: {})
+#   Tags applied to the zone and every record set.
+tags = {
+  Environment = "prod"
+  ManagedBy   = "iac-bazaar"
+}
