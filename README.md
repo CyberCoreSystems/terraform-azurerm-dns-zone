@@ -8,7 +8,7 @@ This module was **applied to a real Azure account, verified, and destroyed** on 
 
 ```hcl
 module "dns_zone" {
-  source  = "CyberCoreSystems/dns-zone/azurerm"
+  source  = "registry.terraform.io/CyberCoreSystems/dns-zone/azurerm"
   version = "~> 1.0"
 
   # See variables.tf for the full input contract.
